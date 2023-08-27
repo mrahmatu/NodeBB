@@ -38,8 +38,9 @@ interface Messaging {
     addMessage(data: SendMessageData): Promise<Message>;
 }
 
-interface MetaConfig {
-    maximumChatMessageLength?: number;
+interface ContentAndLength {
+  content: string;
+  length: number;
 }
 
 export default function configureMessaging(Messaging: Messaging) {
@@ -58,10 +59,11 @@ export default function configureMessaging(Messaging: Messaging) {
             throw new Error('[[error:invalid-chat-message]]');
         }
 
-        const maximumChatMessageLength = meta.config?.maximumChatMessageLength || 1000;
+
+        const maximumChatMessageLength = (meta.configs.maximumChatMessageLength as number) || 1000;
         content = String(content).trim();
         let { length } = content;
-        ({ content, length } = await plugins.hooks.fire('filter:messaging.checkContent', { content, length }));
+        ({ content, length } = await plugins.hooks.fire<ContentAndLength>('filter:messaging.checkContent', { content, length }));
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
@@ -71,26 +73,26 @@ export default function configureMessaging(Messaging: Messaging) {
     };
 
     Messaging.addMessage = async (data) => {
-        const mid = await db.incrObjectField('global', 'nextMid');
+        const mid = await db.incrObjectField('global', 'nextMid') as string; // Type assertion
         const timestamp = data.timestamp || Date.now();
-        let message = {
+        let message: Message = {
             content: String(data.content),
             timestamp: timestamp,
             fromuid: data.uid,
             roomId: data.roomId,
             deleted: 0,
             system: data.system || 0,
-            ip: data.ip
+            ip: data.ip,
         };
 
         if (data.ip) {
             message.ip = data.ip;
         }
 
-        message = await plugins.hooks.fire('filter:messaging.save', message);
+        message = await plugins.hooks.fire<Message>('filter:messaging.save', message); // Type annotation
         await db.setObject(`message:${mid}`, message);
         const isNewSet = await Messaging.isNewSet(data.uid, data.roomId, timestamp);
-        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1);
+        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1) as string[]; // Type assertion
         uids = await user.blocks.filterUids(data.uid, uids);
 
         await Promise.all([
@@ -107,7 +109,7 @@ export default function configureMessaging(Messaging: Messaging) {
         messages[0].newSet = isNewSet;
         messages[0].mid = mid;
         messages[0].roomId = data.roomId;
-        plugins.hooks.fire('action:messaging.save', { message: messages[0], data: data });
+        await plugins.hooks.fire('action:messaging.save', { message: messages[0], data: data });
         return messages[0];
     };
 
@@ -117,7 +119,7 @@ export default function configureMessaging(Messaging: Messaging) {
             uid: uid,
             roomId: roomId,
             system: 1,
-        });
+        }) as Message; // Type assertion
         Messaging.notifyUsersInRoom(uid, roomId, message);
     };
 
@@ -138,3 +140,4 @@ export default function configureMessaging(Messaging: Messaging) {
         await db.sortedSetsAdd(keys, timestamp, mid);
     };
 }
+
