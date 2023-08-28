@@ -51,7 +51,6 @@ module.exports = function (Messaging) {
             roomId: data.roomId,
             deleted: 0,
             system: data.system || 0,
-            ip: data.ip,
         };
         if (data.ip) {
             message.ip = data.ip;
@@ -70,7 +69,7 @@ module.exports = function (Messaging) {
         yield Promise.all([
             Messaging.addRoomToUsers(data.roomId, uids, timestamp),
             Messaging.addMessageToUsers(data.roomId, uids, mid, timestamp),
-            Messaging.markUnread(uids.filter(uid => uid !== String(data.uid)), data.roomId),
+            Messaging.markUnread(uids.filter(uid => uid !== Number(data.uid)), data.roomId),
         ]);
         const messages = yield Messaging.getMessagesData([mid], data.uid, data.roomId, true);
         if (!messages || !messages[0]) {

@@ -6,36 +6,36 @@ import user from '../user';
 interface Message {
     content: string;
     timestamp: number;
-    fromuid: string;
-    roomId: string;
+    fromuid: number;
+    roomId: number;
     deleted: number;
     system: number;
-    ip?: string;
-    newSet?: boolean; // Add newSet property
-    mid?: string;
+    ip:number;
+    newSet?: boolean;
+    mid?:number;
 }
 
-interface SendMessageData {
+interface data {
     content: string;
-    uid: string;
-    roomId: string;
-    timestamp?: number;
-    system?: number;
-    ip?: string;
+    uid:number;
+    roomId:number;
+    system: number;
+    timestamp?:number;
+    ip?:number;
 }
 
 interface Messaging {
-    sendMessage(data: SendMessageData): Promise<Message | null>;
+    sendMessage(data: data): Promise<Message | null>;
     checkContent(content: string): Promise<void>;
-    isUserInRoom(uid: string, roomId: string): Promise<boolean>;
-    isNewSet(uid: string, roomId: string, timestamp: number): Promise<boolean>;
-    getMessagesData(mids: string[], uid: string, roomId: string, flag: boolean): Promise<Message[]>;
-    addRoomToUsers(roomId: string, uids: string[], timestamp: number): Promise<void>;
-    addMessageToUsers(roomId: string, uids: string[], mid: string, timestamp: number): Promise<void>;
-    markUnread(uids: string[], roomId: string): Promise<void>;
-    notifyUsersInRoom(uid: string, roomId: string, message: Message): void;
-    addSystemMessage(content: string, uid: string, roomId: string): Promise<void>;
-    addMessage(data: SendMessageData): Promise<Message>;
+    isUserInRoom(uid: number, roomId: number): Promise<boolean>;
+    isNewSet(uid: number, roomId: number, timestamp: number): Promise<boolean>;
+    getMessagesData(mids: number[], uid: number, roomId: number, flag: boolean): Promise<Message[]>;
+    addRoomToUsers(roomId: number, uids: number[], timestamp: number): Promise<void>;
+    addMessageToUsers(roomId: number, uids: number[], mid: number, timestamp: number): Promise<void>;
+    markUnread(uids: number[], roomId: number): Promise<void>;
+    notifyUsersInRoom(uid: number, roomId: number, message: Message): void;
+    addSystemMessage(content: string, uid: number, roomId: number): Promise<void>;
+    addMessage(data: data): Promise<Message>;
 }
 
 interface ContentAndLength {
@@ -74,17 +74,16 @@ export = function (Messaging: Messaging) {
     Messaging.addMessage = async (data) => {
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const mid = await db.incrObjectField('global', 'nextMid') as string; // Type assertion
+        const mid = await db.incrObjectField('global', 'nextMid') as number; // Type assertion
         const timestamp = data.timestamp || Date.now();
-        let message: Message = {
+        let message = {
             content: String(data.content),
             timestamp: timestamp,
             fromuid: data.uid,
             roomId: data.roomId,
             deleted: 0,
             system: data.system || 0,
-            ip: data.ip,
-        };
+        } as Message;
 
         if (data.ip) {
             message.ip = data.ip;
@@ -97,15 +96,15 @@ export = function (Messaging: Messaging) {
         const isNewSet = await Messaging.isNewSet(data.uid, data.roomId, timestamp);
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1) as string[];
+        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1) as number[];
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        uids = await user.blocks.filterUids(data.uid, uids) as string[];
+        uids = await user.blocks.filterUids(data.uid, uids) as number[];
 
         await Promise.all([
             Messaging.addRoomToUsers(data.roomId, uids, timestamp),
             Messaging.addMessageToUsers(data.roomId, uids, mid, timestamp),
-            Messaging.markUnread(uids.filter(uid => uid !== String(data.uid)), data.roomId),
+            Messaging.markUnread(uids.filter(uid => uid !== Number(data.uid)), data.roomId),
         ]);
 
         const messages = await Messaging.getMessagesData([mid], data.uid, data.roomId, true);
