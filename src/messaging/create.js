@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
 const meta = __importStar(require("../meta"));
 const plugins = __importStar(require("../plugins"));
 const db = __importStar(require("../database"));
@@ -19,7 +52,7 @@ function configureMessaging(Messaging) {
         const maximumChatMessageLength = meta.configs.maximumChatMessageLength || 1000;
         content = String(content).trim();
         let { length } = content;
-        ({ content, length } = yield plugins.hooks.fire('filter:messaging.checkContent', { content, length }));
+        ({ content, length } = (yield plugins.hooks.fire('filter:messaging.checkContent', { content, length })));
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
@@ -28,6 +61,8 @@ function configureMessaging(Messaging) {
         }
     });
     Messaging.addMessage = (data) => __awaiter(this, void 0, void 0, function* () {
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const mid = yield db.incrObjectField('global', 'nextMid'); // Type assertion
         const timestamp = data.timestamp || Date.now();
         let message = {
@@ -42,11 +77,17 @@ function configureMessaging(Messaging) {
         if (data.ip) {
             message.ip = data.ip;
         }
-        message = yield plugins.hooks.fire('filter:messaging.save', message); // Type annotation
+        message = (yield plugins.hooks.fire('filter:messaging.save', message)); // Type annotation
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         yield db.setObject(`message:${mid}`, message);
         const isNewSet = yield Messaging.isNewSet(data.uid, data.roomId, timestamp);
-        let uids = yield db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1); // Type assertion
-        uids = yield user.blocks.filterUids(data.uid, uids);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        let uids = yield db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        uids = (yield user.blocks.filterUids(data.uid, uids));
         yield Promise.all([
             Messaging.addRoomToUsers(data.roomId, uids, timestamp),
             Messaging.addMessageToUsers(data.roomId, uids, mid, timestamp),
@@ -68,7 +109,7 @@ function configureMessaging(Messaging) {
             uid: uid,
             roomId: roomId,
             system: 1,
-        }); // Type assertion
+        });
         Messaging.notifyUsersInRoom(uid, roomId, message);
     });
     Messaging.addRoomToUsers = (roomId, uids, timestamp) => __awaiter(this, void 0, void 0, function* () {
@@ -76,6 +117,8 @@ function configureMessaging(Messaging) {
             return;
         }
         const keys = uids.map(uid => `uid:${uid}:chat:rooms`);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         yield db.sortedSetsAdd(keys, timestamp, roomId);
     });
     Messaging.addMessageToUsers = (roomId, uids, mid, timestamp) => __awaiter(this, void 0, void 0, function* () {
@@ -83,6 +126,8 @@ function configureMessaging(Messaging) {
             return;
         }
         const keys = uids.map(uid => `uid:${uid}:chat:room:${roomId}:mids`);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         yield db.sortedSetsAdd(keys, timestamp, mid);
     });
 }

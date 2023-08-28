@@ -63,7 +63,7 @@ export default function configureMessaging(Messaging: Messaging) {
         const maximumChatMessageLength = (meta.configs.maximumChatMessageLength as number) || 1000;
         content = String(content).trim();
         let { length } = content;
-        ({ content, length } = await plugins.hooks.fire<ContentAndLength>('filter:messaging.checkContent', { content, length }));
+        ({ content, length } = await plugins.hooks.fire('filter:messaging.checkContent', { content, length }) as ContentAndLength);
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
@@ -73,6 +73,8 @@ export default function configureMessaging(Messaging: Messaging) {
     };
 
     Messaging.addMessage = async (data) => {
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const mid = await db.incrObjectField('global', 'nextMid') as string; // Type assertion
         const timestamp = data.timestamp || Date.now();
         let message: Message = {
@@ -89,11 +91,17 @@ export default function configureMessaging(Messaging: Messaging) {
             message.ip = data.ip;
         }
 
-        message = await plugins.hooks.fire<Message>('filter:messaging.save', message); // Type annotation
+        message = await plugins.hooks.fire('filter:messaging.save', message) as Message; // Type annotation
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         await db.setObject(`message:${mid}`, message);
         const isNewSet = await Messaging.isNewSet(data.uid, data.roomId, timestamp);
-        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1) as string[]; // Type assertion
-        uids = await user.blocks.filterUids(data.uid, uids);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        let uids = await db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1) as string[];
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        uids = await user.blocks.filterUids(data.uid, uids) as string[];
 
         await Promise.all([
             Messaging.addRoomToUsers(data.roomId, uids, timestamp),
@@ -119,7 +127,7 @@ export default function configureMessaging(Messaging: Messaging) {
             uid: uid,
             roomId: roomId,
             system: 1,
-        }) as Message; // Type assertion
+        });
         Messaging.notifyUsersInRoom(uid, roomId, message);
     };
 
@@ -129,6 +137,8 @@ export default function configureMessaging(Messaging: Messaging) {
         }
 
         const keys = uids.map(uid => `uid:${uid}:chat:rooms`);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         await db.sortedSetsAdd(keys, timestamp, roomId);
     };
 
@@ -137,6 +147,8 @@ export default function configureMessaging(Messaging: Messaging) {
             return;
         }
         const keys = uids.map(uid => `uid:${uid}:chat:room:${roomId}:mids`);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         await db.sortedSetsAdd(keys, timestamp, mid);
     };
 }
