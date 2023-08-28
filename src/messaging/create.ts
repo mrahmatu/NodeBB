@@ -1,7 +1,7 @@
-import * as meta from '../meta';
-import * as plugins from '../plugins';
-import * as db from '../database';
-import * as user from '../user';
+import meta from '../meta';
+import plugins from '../plugins';
+import db from '../database';
+import user from '../user';
 
 interface Message {
     content: string;
@@ -43,7 +43,7 @@ interface ContentAndLength {
   length: number;
 }
 
-export default function configureMessaging(Messaging: Messaging) {
+export = function (Messaging: Messaging) {
     Messaging.sendMessage = async (data) => {
         await Messaging.checkContent(data.content);
         const inRoom = await Messaging.isUserInRoom(data.uid, data.roomId);
@@ -58,7 +58,6 @@ export default function configureMessaging(Messaging: Messaging) {
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
-
 
         const maximumChatMessageLength = (meta.configs.maximumChatMessageLength as number) || 1000;
         content = String(content).trim();
@@ -152,4 +151,5 @@ export default function configureMessaging(Messaging: Messaging) {
         await db.sortedSetsAdd(keys, timestamp, mid);
     };
 }
+
 

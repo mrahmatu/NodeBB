@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31,12 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const meta = __importStar(require("../meta"));
-const plugins = __importStar(require("../plugins"));
-const db = __importStar(require("../database"));
-const user = __importStar(require("../user"));
-function configureMessaging(Messaging) {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+const meta_1 = __importDefault(require("../meta"));
+const plugins_1 = __importDefault(require("../plugins"));
+const database_1 = __importDefault(require("../database"));
+const user_1 = __importDefault(require("../user"));
+module.exports = function (Messaging) {
     Messaging.sendMessage = (data) => __awaiter(this, void 0, void 0, function* () {
         yield Messaging.checkContent(data.content);
         const inRoom = yield Messaging.isUserInRoom(data.uid, data.roomId);
@@ -49,10 +28,10 @@ function configureMessaging(Messaging) {
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
-        const maximumChatMessageLength = meta.configs.maximumChatMessageLength || 1000;
+        const maximumChatMessageLength = meta_1.default.configs.maximumChatMessageLength || 1000;
         content = String(content).trim();
         let { length } = content;
-        ({ content, length } = (yield plugins.hooks.fire('filter:messaging.checkContent', { content, length })));
+        ({ content, length } = (yield plugins_1.default.hooks.fire('filter:messaging.checkContent', { content, length })));
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
         }
@@ -63,7 +42,7 @@ function configureMessaging(Messaging) {
     Messaging.addMessage = (data) => __awaiter(this, void 0, void 0, function* () {
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const mid = yield db.incrObjectField('global', 'nextMid'); // Type assertion
+        const mid = yield database_1.default.incrObjectField('global', 'nextMid'); // Type assertion
         const timestamp = data.timestamp || Date.now();
         let message = {
             content: String(data.content),
@@ -77,17 +56,17 @@ function configureMessaging(Messaging) {
         if (data.ip) {
             message.ip = data.ip;
         }
-        message = (yield plugins.hooks.fire('filter:messaging.save', message)); // Type annotation
+        message = (yield plugins_1.default.hooks.fire('filter:messaging.save', message)); // Type annotation
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        yield db.setObject(`message:${mid}`, message);
+        yield database_1.default.setObject(`message:${mid}`, message);
         const isNewSet = yield Messaging.isNewSet(data.uid, data.roomId, timestamp);
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        let uids = yield db.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1);
+        let uids = yield database_1.default.getSortedSetRange(`chat:room:${data.roomId}:uids`, 0, -1);
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        uids = (yield user.blocks.filterUids(data.uid, uids));
+        uids = (yield user_1.default.blocks.filterUids(data.uid, uids));
         yield Promise.all([
             Messaging.addRoomToUsers(data.roomId, uids, timestamp),
             Messaging.addMessageToUsers(data.roomId, uids, mid, timestamp),
@@ -100,7 +79,7 @@ function configureMessaging(Messaging) {
         messages[0].newSet = isNewSet;
         messages[0].mid = mid;
         messages[0].roomId = data.roomId;
-        yield plugins.hooks.fire('action:messaging.save', { message: messages[0], data: data });
+        yield plugins_1.default.hooks.fire('action:messaging.save', { message: messages[0], data: data });
         return messages[0];
     });
     Messaging.addSystemMessage = (content, uid, roomId) => __awaiter(this, void 0, void 0, function* () {
@@ -119,7 +98,7 @@ function configureMessaging(Messaging) {
         const keys = uids.map(uid => `uid:${uid}:chat:rooms`);
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        yield db.sortedSetsAdd(keys, timestamp, roomId);
+        yield database_1.default.sortedSetsAdd(keys, timestamp, roomId);
     });
     Messaging.addMessageToUsers = (roomId, uids, mid, timestamp) => __awaiter(this, void 0, void 0, function* () {
         if (!uids.length) {
@@ -128,7 +107,6 @@ function configureMessaging(Messaging) {
         const keys = uids.map(uid => `uid:${uid}:chat:room:${roomId}:mids`);
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        yield db.sortedSetsAdd(keys, timestamp, mid);
+        yield database_1.default.sortedSetsAdd(keys, timestamp, mid);
     });
-}
-exports.default = configureMessaging;
+};
