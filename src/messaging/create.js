@@ -31,6 +31,7 @@ module.exports = function (Messaging) {
         const maximumChatMessageLength = meta_1.default.configs.maximumChatMessageLength || 1000;
         content = String(content).trim();
         let { length } = content;
+        // I was facing issues with the "any" type assignment here, so I took chatGPT's help in adding the type
         ({ content, length } = (yield plugins_1.default.hooks.fire('filter:messaging.checkContent', { content, length })));
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');

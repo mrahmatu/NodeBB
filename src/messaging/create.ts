@@ -25,6 +25,9 @@ interface data {
 }
 
 interface Messaging {
+    // I was confused about the format of adding properties to the interface and understanding
+    // the Promise<> function. So, I used chatGPT to generate the first property sendMessage
+    // and understand how the properties work.
     sendMessage(data: data): Promise<Message | null>;
     checkContent(content: string): Promise<void>;
     isUserInRoom(uid: number, roomId: number): Promise<boolean>;
@@ -38,7 +41,8 @@ interface Messaging {
     addMessage(data: data): Promise<Message>;
 }
 
-interface ContentAndLength {
+
+interface ContentAndLength { // Look at the comment on line 69
   content: string;
   length: number;
 }
@@ -62,6 +66,7 @@ export = function (Messaging: Messaging) {
         const maximumChatMessageLength = (meta.configs.maximumChatMessageLength as number) || 1000;
         content = String(content).trim();
         let { length } = content;
+        // I was facing issues with the "any" type assignment here, so I took chatGPT's help in adding the type
         ({ content, length } = await plugins.hooks.fire('filter:messaging.checkContent', { content, length }) as ContentAndLength);
         if (!content) {
             throw new Error('[[error:invalid-chat-message]]');
